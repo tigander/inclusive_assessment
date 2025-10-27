@@ -38,8 +38,9 @@
 
         // Define the API URL for the Gemini model
         const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent';
-        // Note: The original API key has been kept for reference, but remember to replace it for actual use.
-        const apiKey = "AIzaSyB2D17q5aUhQlmpDKPkdUCiulgXy58Euao"; 
+
+        // CRITICAL: Replace the hardcoded key with a placeholder for the build process
+        const apiKey = "VITE_GEMINI_API_KEY_PLACEHOLDER";
 
         // Define the persona details for the UI, with a more detailed neurodivergent range.
         const personas = [
@@ -416,4 +417,5 @@ Conditions:
         ReactDOM.createRoot(document.getElementById('root')).render(<App />);
     </script>
 </body>
+
 </html>
