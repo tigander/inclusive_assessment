@@ -24,9 +24,12 @@
         }
     </style>
 </head>
-<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans transition-colors duration-300">
+    <body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans transition-colors duration-300">
     <div id="root"></div>
 
+    <script>
+        const GEMINI_API_KEY = "VITE_GEMINI_API_KEY_PLACEHOLDER";
+    </script>
     <script type="text/babel">
         // ------------------------------------------------------------------------------------------------
         // INSTRUCTIONS:
@@ -38,8 +41,8 @@
 
         // Define the API URL for the Gemini model
 const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent';
-// Example: Replace with your actual key
-const apiKey = "VITE_GEMINI_API_KEY_PLACEHOLDER";
+        // Example: Replace with your actual key
+const apiKey = GEMINI_API_KEY;
 
         // Define the persona details for the UI, with a more detailed neurodivergent range.
         const personas = [
@@ -418,6 +421,7 @@ Conditions:
 </body>
 
 </html>
+
 
 
 
