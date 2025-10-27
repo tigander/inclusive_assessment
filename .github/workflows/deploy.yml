@@ -12,19 +12,19 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         
-      # 1. Inject the secret key directly into the checked-out index.html
+      # 1. Inject the secret key using the robust line replacement method
       - name: Inject API Key
+        # The 'c\' command means 'change the entire line'. We use double quotes 
+        # for the run command to allow variable substitution of the secret.
         run: |
-          # Use the sed command with different delimiters to avoid key character conflicts.
-          # The -i flag modifies the file in place.
-          sed -i 's@VITE_GEMINI_API_KEY_PLACEHOLDER@${{ secrets.GEMINI_API_KEY }}@g' index.html
+          sed -i '/VITE_GEMINI_API_KEY_PLACEHOLDER/c\const apiKey = "${{ secrets.GEMINI_API_KEY }}";' index.html
           
       # 2. Deploy the modified index.html to GitHub Pages
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
-          # This deploys the content of the current directory, which now contains the key.
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./
-          # Deploy to the gh-pages branch, which is what GitHub Pages expects.
           publish_branch: gh-pages
+          
+ 
