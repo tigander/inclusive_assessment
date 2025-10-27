@@ -13,14 +13,19 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         
-      # 1. Inject the secret key using the robust sed command
+# 1. Install tool necessary for substitution (often needed on GitHub runners)
+      - name: Install envsubst
+        run: sudo apt-get update && sudo apt-get install -y gettext-base
+
+      # 2. Inject the secret key using the reliable envsubst utility
       - name: Inject API Key
+        env:
+          GEMINI_API_KEY_GOES_HERE: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          # Use non-standard delimiter '@' to safely substitute the key into index.html
-          # The -i flag ensures the file is modified in place.
-          sed -i "s@VITE_GEMINI_API_KEY_PLACEHOLDER@${{ secrets.GEMINI_API_KEY }}@g" index.html
+          # The envsubst tool replaces the variable name in index.html with the secret value
+          envsubst < index.html > temp_index.html && mv temp_index.html index.html
           
-      # 2. Deploy the modified index.html to GitHub Pages
+      # 3. Deploy the modified index.html to GitHub Pages (Step 2 in original plan)
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
