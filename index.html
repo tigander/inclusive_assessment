@@ -28,7 +28,7 @@
     <div id="root"></div>
 
     <script>
-        const GEMINI_API_KEY = "AIzaSyDdofTUvkib512oijtR52JB_WBQ4WzRO9I";
+        const GEMINI_API_KEY = "VITE_GEMINI_API_KEY_PLACEHOLDER";
     </script>
     <script type="text/babel">
         // ------------------------------------------------------------------------------------------------
@@ -168,16 +168,16 @@ Conditions:
             }
 
             // MODIFICATION: Updated prompt for assessment analysis, context, and RAG-lite
-            const prompt = `Analyze the following assessment plan for equity, accessibility, bias, and fairness, and provide student voice reflections and actionable recommendations. The assessment is designed for a ${selectedContext} context in Aotearoa New Zealand.
+            const prompt = `Analyze the following assessment plan for equity, accessibility, bias, and fairness, and provide student voice reflections and actionable recommendations. The assessment is designed for a  context in Aotearoa New Zealand.
             
             Assessment Plan:
-            ${assessmentPlan}
+            
             
             Student Personas for Reflections: ${selectedPersonas.join(', ')}
             
             The reflections and recommendations must be grounded in equitable, culturally sustaining, and Universal Design for Learning (UDL) assessment principles. Use the following knowledge base to ensure the recommendations are evidence-based:
 
-            ${KEY_PRINCIPLES}
+            
             
             For recommendations, provide the name of the source document that the idea is most related to, using one of the following exact phrase keys: 
             'He Whakaaraara', 'Ka Hikitia Ka Hāpaitia', 'All In', 'Ministry of Education: Promoting equitable educational outcomes', 'ITPG25', 'DFSG23', 'NEURO24', 'IE-DA25', 'UDLAUT23', 'PRK2018', 'IE-UDL25', 'UDLECE22', or 'IADNZ'.
@@ -216,7 +216,7 @@ Conditions:
             };
 
             try {
-              const response = await fetch(`${API_URL}?key=${apiKey}`, {
+              const response = await fetch(`?key=`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
