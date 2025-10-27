@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equity Lens for Assessment Design</title>
+    
+    <meta property="og:title" content="Equity Lens for Assessment Design">
+    <meta property="og:description" content="An interactive tool to help teachers reflect on their assessment plans from diverse student perspectives.">
+    <meta property="og:type" content="website">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .list-disc-inside li::marker {
+            font-size: 1.5rem;
+            line-height: 1;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans transition-colors duration-300">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // ------------------------------------------------------------------------------------------------
+        // INSTRUCTIONS:
+        // This application requires a Google Gemini API key to function.
+        // 1. Go to https://aistudio.google.com/app/apikey to get a new API key.
+        // 2. Replace the empty string below with your new API key.
+        // ------------------------------------------------------------------------------------------------
+        const { useState, useEffect } = React;
+
+        // Define the API URL for the Gemini model
+        const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent';
+        // Note: The original API key has been kept for reference, but remember to replace it for actual use.
+        const apiKey = "AIzaSyB2D17q5aUhQlmpDKPkdUCiulgXy58Euao"; 
+
+        // Define the persona details for the UI, with a more detailed neurodivergent range.
+        const personas = [
+          { id: 'dyslexic', name: 'Dyslexic Learner' },
+          { id: 'adhd', name: 'ADHD Learner' },
+          { id: 'autistic', name: 'Autistic Learner' },
+          { id: 'esl', name: 'ESL Learner' },
+          // MODIFICATION: Updated persona for assessment context
+          { id: 'highAchieving', name: 'Student Needing Extension' }, 
+          { id: 'limitedAccess', name: 'Student with Limited Digital Access' },
+          { id: 'maori', name: 'Māori Learner' },
+          { id: 'pasifika', name: 'Pasifika Learner' },
+        ];
+
+        // MODIFICATION: Define the new NZ-based context options.
+        const contexts = [
+          { id: 'primary_yr1_6', name: 'Primary (Years 1-6)' },
+          { id: 'intermediate_yr7_8', name: 'Intermediate (Years 7-8)' },
+          { id: 'secondary_yr9_13', 'name': 'Secondary (Years 9-13)' },
+          { id: 'nzqa_l1_3', 'name': 'Tertiary/Vocational (NZQA L1-3)' },
+          { id: 'nzqa_l4_7', 'name': 'Degree/Diploma (NZQA L4-7)' },
+          { id: 'nzqa_l8_10', 'name': 'Post-grad/Doctoral (NZQA L8-10)' },
+        ];
+
+        // MODIFICATION: Pre-populated ASSESSMENT example
+        const prePopulatedAssessment = `
+Assessment Title: Habitat Interrelationships Final Quiz
+
+Subject: Science
+
+Year Level: Year 9/10 (Secondary)
+
+Duration: 50 minutes (no extra time given)
+
+Task:
+Students will answer a 4-page written test, which includes:
+1. Multiple choice questions (10 marks) on vocabulary and definitions.
+2. Two short essay questions (20 marks total) requiring recall of concepts and justification.
+3. A diagram labelling task (10 marks) of a complex food web.
+Conditions:
+- Closed book, no notes allowed.
+- Must be completed individually in silence.
+- Students must handwrite all answers clearly on the provided lined paper.
+- All digital devices (including phones and text-to-speech) are banned during the test.
+`;
+
+        // MODIFICATION: Updated and expanded metadata for ALL reference documents
+        const SOURCE_METADATA = {
+          // Original Sources (kept for completeness)
+          'He Whakaaraara': { title: 'He Whakaaraara: A Call to Action', author: 'CORE Education, Education Partnership & Innovation Trust, UNICEF' },
+          'Ka Hikitia Ka Hāpaitia': { title: 'Ka Hikitia Ka Hāpaitia: Māori Education Strategy', author: 'New Zealand Ministry of Education and other education agencies' },
+          'All In': { title: 'All In: Towards Tangible Solutions for Equity and Inclusion in Education', author: 'UNICEF Education Programme' },
+          'Ministry of Education: Promoting equitable educational outcomes': { title: 'Ministry of Education: Promoting equitable educational outcomes', author: 'Office of the Auditor-General' },
+          // New Assessment-Focused Sources
+          'ITPG25': { title: 'Inclusive Teaching Practice Guidance', author: 'Teaching Council of Aotearoa New Zealand, 2025' },
+          'DFSG23': { title: 'Dyslexia-Friendly Style Guide', author: 'Ako Aotearoa, 2023' },
+          'NEURO24': { title: 'Appreciating and Supporting Neurodiversity', author: 'Skills Group for ConCOVE, 2024' },
+          'IE-DA25': { title: 'Design assessments to enable students to demonstrate their understanding', author: 'Ministry of Education, Inclusive Education, 2025' },
+          'UDLAUT23': { title: 'Promoting inclusive practice for autistic learners: UDL', author: 'Fiona Mitchell, Kairaranga 24(2), 2023' },
+          'PRK2018': { title: 'Implementing and evaluating the efficacy of a Pasifika Resource Kit', author: 'Noa, Luafutu-Simpson, Petelo, Uta’i, 2018' },
+          'IE-UDL25': { title: 'Take a UDL approach', author: 'Ministry of Education, Inclusive Education, 2025' },
+          'UDLECE22': { title: 'The beauty of universal design for learning and why everyone in early childhood education should be using it', author: 'Thecla K. Moffat, Kairaranga 23(1), 2022' },
+          'IADNZ': { title: 'Inclusive Assessment Design for Diverse Learners in Aotearoa New Zealand', author: 'Education Partnership and Innovation Trust, n.d.' },
+        };
+        
+        // MODIFICATION: Key principles for RAG-lite
+        const KEY_PRINCIPLES = `
+        **Assessment Equity Knowledge Base (Based on Key Principles):**
+        - [DFSG23]: Make materials and assessments easy to read and navigate so the construct is not masked by format. Provide accessible digital versions, allow text-to-speech and reduce reading burden.
+        - [NEURO24]: Shift from compliance adjustments to universal, strengths-based assessment design. Offer flexible tasks, multi-modal evidence, predictable routines, and sensory-aware conditions.
+        - [IE-DA25]: Avoid one-size-fits-all tasks. Provide multiple valid modes to evidence learning (oral, demonstration, multimedia, written). Remove construct-irrelevant barriers (time, environment, materials).
+        - [UDLAUT23]: Apply UDL to reduce anxiety and executive load for autistic learners. Use clear visual structure, predictable sequences, communication options that do not rely on rapid social reciprocity, and scaffolded choices.
+        - [ITPG25]: Inclusion is an expectation. Remove barriers in assessment so all ākonga can access and express understanding. Design for cultural and linguistic responsiveness from the start.
+        - [PRK2018]: Make assessment culturally sustaining for Pasifika learners by centering relationships, collective ways of knowing, and visible Pasifika identities. Enable collaborative and oral demonstration.
+        - [IE-UDL25]: Anticipate common barriers and embed universal supports for everyone. Teach and permit assistive technologies. Provide advance organisers, visual timers, and allow flexible timing and breaks when speed is not part of the construct.
+        - [UDLECE22]: Use UDL in ECE to ensure access and multiple ways to demonstrate learning. Align with Te Whāriki so children can show capabilities in play, movement, language, and creative media.
+        - [IADNZ]: Start with UDL and equity rather than retrofitting accommodations. Remove barriers like dense text, jargon, and unnecessary time pressure. Offer multiple, equivalent evidence pathways.
+        `;
+
+
+        function App() {
+          const [assessmentPlan, setAssessmentPlan] = useState(prePopulatedAssessment);
+          const [selectedPersonas, setSelectedPersonas] = useState(['dyslexic', 'adhd', 'esl', 'maori']);
+          const [selectedContext, setSelectedContext] = useState('secondary_yr9_13'); // MODIFICATION: Default to new context
+          const [reflections, setReflections] = useState(null);
+          const [recommendations, setRecommendations] = useState(null);
+          const [isLoading, setIsLoading] = useState(false);
+          const [error, setError] = useState(null);
+
+          // Custom function to handle file uploads
+          const handleFileUpload = (event) => {
+            const file = event.target.files[0];
+            if (file) {
+              const reader = new FileReader();
+              reader.onload = (e) => {
+                // MODIFICATION: Changed variable name to assessmentPlan
+                setAssessmentPlan(e.target.result);
+              };
+              reader.readAsText(file);
+            }
+          };
+
+          const handlePersonaToggle = (personaId) => {
+            setSelectedPersonas((prev) =>
+              prev.includes(personaId) ? prev.filter((id) => id !== personaId) : [...prev, personaId]
+            );
+          };
+
+          const handleGenerate = async () => {
+            if (!assessmentPlan) {
+              setError("Please provide an assessment plan to analyze.");
+              return;
+            }
+            setError(null);
+            setIsLoading(true);
+            setReflections(null);
+            setRecommendations(null);
+            
+            if (!apiKey || apiKey === "YOUR_API_KEY_HERE") {
+                setError("Please provide a valid API key. You can get one from aistudio.google.com/app/apikey.");
+                setIsLoading(false);
+                return;
+            }
+
+            // MODIFICATION: Updated prompt for assessment analysis, context, and RAG-lite
+            const prompt = `Analyze the following assessment plan for equity, accessibility, bias, and fairness, and provide student voice reflections and actionable recommendations. The assessment is designed for a ${selectedContext} context in Aotearoa New Zealand.
+            
+            Assessment Plan:
+            ${assessmentPlan}
+            
+            Student Personas for Reflections: ${selectedPersonas.join(', ')}
+            
+            The reflections and recommendations must be grounded in equitable, culturally sustaining, and Universal Design for Learning (UDL) assessment principles. Use the following knowledge base to ensure the recommendations are evidence-based:
+
+            ${KEY_PRINCIPLES}
+            
+            For recommendations, provide the name of the source document that the idea is most related to, using one of the following exact phrase keys: 
+            'He Whakaaraara', 'Ka Hikitia Ka Hāpaitia', 'All In', 'Ministry of Education: Promoting equitable educational outcomes', 'ITPG25', 'DFSG23', 'NEURO24', 'IE-DA25', 'UDLAUT23', 'PRK2018', 'IE-UDL25', 'UDLECE22', or 'IADNZ'.
+            
+            Please provide the output in JSON format. The JSON should have two top-level keys: 'reflections' and 'recommendations'.
+            'reflections' should be an object where each key is a persona ID (e.g., 'dyslexic') and the value is a short, concise paragraph of a student voice reflection.
+            'recommendations' should be an array of objects. Each object in this array must have a 'text' field (a single recommendation as a string) and a 'sourceKey' field (the simplified title of the source document, e.g., 'DFSG23'). Recommendations should be a list of bullet points.`;
+
+            const payload = {
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                  type: "OBJECT",
+                  properties: {
+                    reflections: {
+                      type: "OBJECT",
+                      properties: Object.fromEntries(
+                        selectedPersonas.map(id => [id, { type: "STRING" }])
+                      ),
+                      required: selectedPersonas
+                    },
+                    recommendations: {
+                      type: "ARRAY",
+                      items: {
+                        type: "OBJECT",
+                        properties: {
+                          text: { type: "STRING" },
+                          sourceKey: { type: "STRING" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            };
+
+            try {
+              const response = await fetch(`${API_URL}?key=${apiKey}`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload),
+              });
+
+              if (!response.ok) {
+                throw new Error(`API error: ${response.status} ${response.statusText}`);
+              }
+
+              const result = await response.json();
+              const text = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+              const parsedData = JSON.parse(text);
+
+              setReflections(parsedData.reflections);
+              setRecommendations(parsedData.recommendations);
+            } catch (err) {
+              console.error("Failed to generate reflections:", err);
+              // MODIFICATION: Updated error message
+              setError("Failed to generate feedback. Please check the assessment content and API key, and try again.");
+            } finally {
+              setIsLoading(false);
+            }
+          };
+
+          return (
+            <div className="min-h-screen p-6 md:p-12">
+              <div className="max-w-4xl mx-auto space-y-8">
+                <header className="text-center mb-10">
+                  {/* MODIFICATION: Updated Title */}
+                  <h1 className="text-4xl md:text-5xl font-extrabold text-blue-600 dark:text-blue-400 mb-2">Equity Lens for Assessment Design</h1>
+                  {/* MODIFICATION: Updated Subtitle */}
+                  <p className="text-xl md:text-2xl font-light">
+                    Check your assessment for bias, fairness, and accessibility.
+                  </p>
+                </header>
+
+                <section className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 md:p-8">
+                  {/* MODIFICATION: Updated Heading */}
+                  <h2 className="text-2xl font-semibold mb-4">Your Assessment Details</h2>
+                  <div className="flex flex-col md:flex-row gap-4 mb-4">
+                    <label className="flex-1 w-full text-sm font-medium">
+                      {/* MODIFICATION: Updated Label */}
+                      Paste or type your assessment details here (task, conditions, criteria)
+                      <textarea
+                        className="w-full h-48 mt-1 p-3 bg-gray-100 dark:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                        value={assessmentPlan}
+                        // MODIFICATION: Changed onChange to setAssessmentPlan
+                        onChange={(e) => setAssessmentPlan(e.target.value)}
+                        placeholder="e.g., Describe the assessment task, instructions, time limit, and materials allowed."
+                      ></textarea>
+                    </label>
+                    <div className="flex-1 flex flex-col items-center justify-center p-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
+                      <span className="text-gray-400 dark:text-gray-500 text-sm mb-2">Or upload a file (text-based)</span>
+                      <label className="w-full cursor-pointer bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg text-center transition-colors">
+                        Upload Assessment
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept=".txt,.md,.pdf" 
+                          onChange={handleFileUpload}
+                        />
+                      </label>
+                      <div className="text-center mt-2 text-xs text-gray-500 dark:text-gray-400">
+                        Voice input is not yet supported in this version.
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <section className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 md:p-8">
+                  <h2 className="text-2xl font-semibold mb-4">Settings</h2>
+                  <div className="grid md:grid-cols-2 gap-8">
+                    <div>
+                      {/* MODIFICATION: Updated Heading */}
+                      <h3 className="text-lg font-medium mb-2">Select Age Group / NZQA Level</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {/* MODIFICATION: Uses new contexts */}
+                        {contexts.map((ctx) => (
+                          <button
+                            key={ctx.id}
+                            onClick={() => setSelectedContext(ctx.id)}
+                            className={`py-2 px-4 rounded-full font-medium transition-colors ${
+                              selectedContext === ctx.id
+                                ? 'bg-blue-600 text-white shadow-md'
+                                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                            }`}
+                          >
+                            {ctx.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">Select Student Personas</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {personas.map((persona) => (
+                          <button
+                            key={persona.id}
+                            onClick={() => handlePersonaToggle(persona.id)}
+                            className={`py-2 px-4 rounded-full font-medium transition-colors ${
+                              selectedPersonas.includes(persona.id)
+                                ? 'bg-blue-600 text-white shadow-md'
+                                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                            }`}
+                          >
+                            {persona.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 my-6 rounded-lg shadow-inner" role="alert">
+                  <div className="flex">
+                    <div className="py-1">
+                      <svg className="fill-current h-6 w-6 text-yellow-500 mr-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                        <path d="M2.93 17.07A10 10 0 1 1 17.07 2.93 10 10 0 0 1 2.93 17.07zm12.73-1.41A8 8 0 1 0 4.34 4.34a8 8 0 0 0 11.32 11.32zM9 11V9h2v6H9v-4zm0-6h2v2H9V5z"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="font-bold">Disclaimer:</p>
+                      {/* MODIFICATION: Updated Disclaimer text */}
+                      <p className="text-sm">This tool provides guidance and ideas on assessment fairness and UDL. It is an aid for critical reflection, not a definitive judgment. The ultimate responsibility for knowing and designing for the diverse and specific assessment needs of your learners rests with you, the educator.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-center mt-8">
+                  <button
+                    onClick={handleGenerate}
+                    // MODIFICATION: Changed variable name to assessmentPlan
+                    disabled={isLoading || !assessmentPlan || selectedPersonas.length === 0}
+                    className={`py-3 px-8 rounded-full text-xl font-bold transition-all transform hover:scale-105 ${
+                      isLoading || !assessmentPlan || selectedPersonas.length === 0
+                        ? 'bg-gray-400 dark:bg-gray-600 text-gray-200 cursor-not-allowed'
+                        : 'bg-green-500 text-white hover:bg-green-600 shadow-lg'
+                    }`}
+                  >
+                    {/* MODIFICATION: Updated button text */}
+                    {isLoading ? 'Generating Feedback...' : 'Generate Equity Feedback'}
+                  </button>
+                </div>
+
+                {error && (
+                  <div className="bg-red-500 text-white p-4 rounded-lg mt-8 text-center">{error}</div>
+                )}
+
+                {(reflections || recommendations) && (
+                  <section className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 md:p-8 mt-8">
+                    <h2 className="text-2xl font-semibold mb-4">Equity Feedback</h2>
+                    
+                    {reflections && Object.keys(reflections).length > 0 && (
+                      <div className="mb-6">
+                        <h3 className="text-lg font-medium text-blue-500 dark:text-blue-400 mb-4">Student Voices: Potential Impact</h3>
+                        <div className="space-y-4">
+                          {Object.keys(reflections).map((key) => (
+                            <div key={key} className="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg">
+                              <p className="font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                                Perspective: {personas.find(p => p.id === key)?.name || key}
+                              </p>
+                              <p className="text-gray-600 dark:text-gray-400 italic">"{reflections[key]}"</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {recommendations && recommendations.length > 0 && (
+                      <div>
+                        <h3 className="text-lg font-medium text-blue-500 dark:text-blue-400 mb-4">Recommendations for Fairer Assessment Design</h3>
+                        <ul className="list-disc list-inside space-y-2">
+                          {recommendations.map((rec, index) => {
+                            const sourceInfo = SOURCE_METADATA[rec.sourceKey];
+                            return (
+                              <li key={index} className="text-gray-600 dark:text-gray-400">
+                                {rec.text}
+                                {sourceInfo && (
+                                  <div className="text-sm mt-1 ml-4 border-l-2 border-gray-300 pl-2 italic">
+                                    <div className="font-semibold text-gray-500 dark:text-gray-400">Source: {sourceInfo.title}</div>
+                                    <div className="text-xs text-gray-400">Author: {sourceInfo.author}</div>
+                                  </div>
+                                )}
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                    )}
+                  </section>
+                )}
+              </div>
+            </div>
+          );
+        }
+        
+        // Render the App component
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
