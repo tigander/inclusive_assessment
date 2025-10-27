@@ -12,18 +12,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 1. Inject the secret key into the index.html file
+    # 1. Inject the secret key into the index.html file
       - name: Inject API Key
         run: |
-          # Read the content of index.html
-          CONTENT=$(cat index.html)
-
-          # Replace the placeholder with the actual secret value
-          # ${{ secrets.GEMINI_API_KEY }} securely pulls the key from repository secrets
-          MODIFIED_CONTENT=$(echo "$CONTENT" | sed "s|VITE_GEMINI_API_KEY_PLACEHOLDER|${{ secrets.GEMINI_API_KEY }}|g")
-
-          # Overwrite the index.html with the content containing the injected key
-          echo "$MODIFIED_CONTENT" > index.html
+          # Use different delimiters (@@) to avoid conflicts with special characters in the key
+          # The -i flag modifies the file in place
+          sed -i "s@VITE_GEMINI_API_KEY_PLACEHOLDER@${{ secrets.GEMINI_API_KEY }}@g" index.html
+          
+      # 2. Deploy the modified index.html to GitHub Pages
+      # ... (rest of the deploy.yml file remains the same)
 
       # 2. Deploy the modified index.html to GitHub Pages
       - name: Deploy to GitHub Pages
