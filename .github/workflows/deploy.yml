@@ -1,13 +1,25 @@
-- name: Checkout repository
-        uses: actions/checkout@v4
+name: Deploy to GitHub Pages
 
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
       # 1. Inject the secret key using the robust sed command
       - name: Inject API Key
         run: |
           # Use non-standard delimiter '@' to safely substitute the key into index.html
           # The -i flag ensures the file is modified in place.
           sed -i "s@VITE_GEMINI_API_KEY_PLACEHOLDER@${{ secrets.GEMINI_API_KEY }}@g" index.html
-
+          
       # 2. Deploy the modified index.html to GitHub Pages
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
