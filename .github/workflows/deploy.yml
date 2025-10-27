@@ -12,12 +12,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         
-      # 1. Inject the secret key using the robust line replacement method
-      - name: Inject API Key
-        # The 'c\' command means 'change the entire line'. We use double quotes 
-        # for the run command to allow variable substitution of the secret.
+      # This step sets a temporary environment variable for the deployment tool
+      - name: Set API Key as Environment Variable
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          sed -i '/VITE_GEMINI_API_KEY_PLACEHOLDER/c\const apiKey = "${{ secrets.GEMINI_API_KEY }}";' index.html
+          # Use sed to inject a <script> block with the environment variable value 
+          # directly into the <body>, making it available as window.GEMINI_API_KEY.
+          sed -i '/<body /a <script>window.GEMINI_API_KEY = "'"$GEMINI_API_KEY"'";<\/script>' index.html
           
       # 2. Deploy the modified index.html to GitHub Pages
       - name: Deploy to GitHub Pages
