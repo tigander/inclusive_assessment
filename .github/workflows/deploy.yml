@@ -12,17 +12,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         
-  # 1. New, robust substitution using the 'awk' command
-      - name: Inject API Key with awk
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+  # 1. Inject the secret key using the robust sed command
+      - name: Inject API Key
         run: |
-          # The awk command finds the placeholder string and replaces it with the secret key.
-          awk -v key="${{ secrets.GEMINI_API_KEY }}" '
-            {
-              gsub(/VITE_GEMINI_API_KEY_PLACEHOLDER/, key);
-              print $0
-            }
-          ' index.html > temp_index.html && mv temp_index.html index.html
+          # Use non-standard delimiter '@' to safely substitute the key into index.html
+          # The -i flag ensures the file is modified in place.
+          sed -i "s@VITE_GEMINI_API_KEY_PLACEHOLDER@${{ secrets.GEMINI_API_KEY }}@g" index.html
           
- 
+      # 2. Deploy the modified index.html to GitHub Pages
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./
+          publish_branch: gh-pages
