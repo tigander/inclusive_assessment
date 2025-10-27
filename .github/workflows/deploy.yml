@@ -12,13 +12,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         
-      # This step sets a temporary environment variable for the deployment tool
-      - name: Set API Key as Environment Variable
+      # 1. This step injects the secret key as a <script> block into the body
+      - name: Inject API Key
         env:
+          # Define the secret key as an environment variable for the run step
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          # Use sed to inject a <script> block with the environment variable value 
-          # directly into the <body>, making it available as window.GEMINI_API_KEY.
+          # The sed command finds the opening <body> tag and injects a script line immediately after it,
+          # defining window.GEMINI_API_KEY for the index.html to use.
+          # The double and single quotes ensure the shell and the JavaScript are parsed correctly.
           sed -i '/<body /a <script>window.GEMINI_API_KEY = "'"$GEMINI_API_KEY"'";<\/script>' index.html
           
       # 2. Deploy the modified index.html to GitHub Pages
