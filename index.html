@@ -33,7 +33,7 @@ const { useState, useEffect } = React;
 // Define the API URL for the Gemini model
 const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent';
 // Example: Replace with your actual key
-const apiKey = "AIzaSyDdofTUvkib512oijtR52JB_WBQ4WzRO9I";
+const apiKey = "AIzaSyCJ9w9iTr-ETn5nxcgFCM_ckNR5yzKsQX0";
 
 // Define the persona details for the UI, with a more detailed neurodivergent range.
 const personas = [
@@ -152,7 +152,7 @@ setIsLoading(true);
 setReflections(null);
 setRecommendations(null);
 
-if (!apiKey || apiKey === "YOUR_API_KEY_HERE" || apiKey === "AIzaSyDdofTUvkib512oijtR52JB_WBQ4WzRO9I") {
+if (!apiKey || apiKey === "YOUR_API_KEY_HERE" || apiKey.startsWith('$')) {
 setError("Please provide a valid API key. You can get one from aistudio.google.com/app/apikey.");
 setIsLoading(false);
 return;
