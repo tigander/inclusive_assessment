@@ -6,23 +6,47 @@ on:
     branches: [ "main" ]
     paths:
       - "proxy/**"
+      - "wrangler.toml"
+      - "wrangler.jsonc"
+      - ".github/workflows/deploy-cloudflare-worker.yml"
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: proxy
+    permissions:
+      contents: read
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Detect Wrangler working directory
+        id: detect_dir
+        run: |
+          if [ -f "proxy/wrangler.toml" ] || [ -f "proxy/wrangler.jsonc" ]; then
+            echo "workdir=proxy" >> "$GITHUB_OUTPUT"
+          elif [ -f "wrangler.toml" ] || [ -f "wrangler.jsonc" ]; then
+            echo "workdir=." >> "$GITHUB_OUTPUT"
+          else
+            echo "Could not find wrangler.toml or wrangler.jsonc in root or proxy/."
+            exit 1
+          fi
+
+      - name: Validate required secrets
+        run: |
+          test -n "${{ secrets.CLOUDFLARE_API_TOKEN }}" || (echo "Missing CLOUDFLARE_API_TOKEN" && exit 1)
+          test -n "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}" || (echo "Missing CLOUDFLARE_ACCOUNT_ID" && exit 1)
+          test -n "${{ secrets.GEMINI_API_KEY }}" || (echo "Missing GEMINI_API_KEY" && exit 1)
 
       - name: Deploy Worker
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: proxy
+          workingDirectory: ${{ steps.detect_dir.outputs.workdir }}
           command: deploy
           secrets: |
             GEMINI_API_KEY
